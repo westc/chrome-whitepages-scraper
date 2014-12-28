@@ -1,16 +1,22 @@
-(function(EMPTY_OBJECT, global, undefined) {
+(function(EMPTY_OBJECT, EMPTY_ARRAY, global, undefined) {
   var hasOwnProperty = EMPTY_OBJECT.hasOwnProperty;
+  var arraySlice = EMPTY_ARRAY.slice;
+
+  function typeOf(o, p) {
+    o = o === global
+      ? "global"
+      : o == undefined
+        ? o === undefined
+          ? "undefined"
+          : "null"
+        : EMPTY_OBJECT.toString.call(o).slice(8, -1);
+    return p ? p === o : o;
+  }
 
   /**
    * @license JS Polling - By Chris West - MIT License
    */
-  (function(emptyObj, emptyArr, types, undefined) {
-    function typeOf(obj) {
-      return obj == undefined
-        ? obj === undefined ? 'undefined' : 'null'
-        : emptyObj.toString.call(obj).slice(8, -1);
-    }
-     
+  (function(emptyArr, types) {
     /**
      * Polls every so often until a specific condition is true before running the
      * fnOnReady function.
@@ -40,7 +46,7 @@
       var i = -1;
       while(type = types[++i]) {
         myArg = myArgs[i];
-        if(myArg != undefined && typeOf(myArg) != types[i]) {
+        if(myArg != undefined && !typeOf(myArg, types[i])) {
           myArgs.splice(i, 0, undefined);
         }
       }
@@ -64,7 +70,69 @@
       }
       fnCaller();
     }
-  })({}, [], ['Function', 'Number', 'Number', 'Array']);
+  })([], ['Function', 'Number', 'Number', 'Array']);
+
+  // Taken from an unpublished post on cwestblog.com
+  var dom = (function(document, emptyArr, regExpDash, innerText, textContent, undefined) {
+    function cap$1($0, $1) {
+      return $1.toUpperCase();
+    }
+    
+    var div = dom({nodeName:'DIV'});
+    function dom(obj) {
+      var elem;
+      if (typeOf(obj, 'String')) {
+        div.innerHTML = obj;
+        elem = emptyArr.slice.call(div.childNodes, 0);
+      }
+      else {
+        elem = document.createElement(obj.nodeName);
+        for (var propName in obj) {
+          var propValue = obj[propName];
+          if (propName == 'style') {
+            var style = elem[propName];
+            if (typeOf(propValue, 'String')) {
+              style.cssText = propValue;
+            }
+            else {
+              for (var stylePropName in propValue) {
+                if (hasOwnProperty.call(propValue, stylePropName)) {
+                  style[stylePropName.replace(regExpDash, cap$1)] = propValue[stylePropName];
+                }
+              }
+            }
+          }
+          else if (propName == innerText || propName == textContent) {
+            elem[textContent] = elem[innerText] = propValue;
+          }
+          else if (propName == 'children') {
+            if (!typeOf(propValue, 'Array')) {
+              propValue = [propValue];
+            }
+            for (var i = 0, l = propValue.length; i < l; i++) {
+              var child = dom(propValue[i]);
+              if (!typeOf(child, 'Array')) {
+                child = [child];
+              }
+              var kid, j = 0;
+              while (kid = child[j++]) {
+                elem.appendChild(kid);
+              }
+            }
+          }
+          else if (propName == 'for') {
+            elem.htmlFor = propValue;
+          }
+          else if (propName != 'nodeName') {
+            elem[propName] = propValue;
+          }
+        }
+      }
+      return elem;
+    }
+
+    return dom;
+  })(document, [], /-([^-])/g, 'innerText', 'textContent');
 
   var jPaq = {
     compose: function(me, fn, arraysToParams, useReturnAsThis) {
@@ -96,16 +164,7 @@
       }
       return true;
     },
-    typeOf: function(o, p) {
-      o = o === global
-        ? "global"
-        : o == undefined
-          ? o === undefined
-            ? "undefined"
-            : "null"
-          : EMPTY_OBJECT.toString.call(o).slice(8, -1);
-      return p ? p === o : o;
-    },
+    typeOf: typeOf,
     parseCSV: function(strCSV, opt_headerRow, opt_delimiter, opt_fnProcessCell) {
       opt_delimiter = opt_delimiter || ',';
       var pattern = '([^"' + opt_delimiter + '\r\n]*|"((?:[^"]+|"")*)")(,|\r|\r?\n)';
@@ -162,7 +221,46 @@
         }
       }
     },
-    poll: poll
+    param: function(arrFields, callback) {
+      for (var t, o = {}, defaults = [], len = arrFields.length, i = len; i--;) {
+        t = o.toString.call(t = arrFields[i]) == '[object Array]' ? t : [t];
+        defaults[i] = t[1];
+        arrFields[i] = t[0];
+      }
+
+      return function(fields) {
+        for (var t, args = arrFields.slice.call(arguments, 0), i = len; i--;) {
+          args.unshift(fields && (o.hasOwnProperty.call(fields, t=arrFields[i]) ? fields[t] : defaults[i]));
+        }
+        return callback.apply(this, args);
+      };
+    },
+    extend: function(objToExtend, objExtensions, override) {
+      override = override === undefined || override;  // Defaults to true
+      for (var key in objExtensions) {
+        if (hasOwnProperty.call(objExtensions, key) && (override || hasOwnProperty.call(objToExtend, key))) {
+          objToExtend[key] = objExtensions[key];
+        }
+      }
+      return objToExtend;
+    },
+    curry: function(fn) {
+      var args = arraySlice.call(arguments, 1);
+      return function() {
+        return fn.apply(this, args.concat(arraySlice.call(arguments)));
+      };
+    },
+    /**
+     * Converts an array of arrays with the sub-arrays containing [key,value] into an object.
+     */
+    kvToObject: function(arr) {
+      return arr.reduce(function(ret, arrKV) {
+        ret[arrKV[0]] = arrKV[1];
+        return ret;
+      }, {});
+    },
+    poll: poll,
+    dom: dom
   };
   global.$JS = jPaq;
-})({}, this);
+})({}, [], this);
