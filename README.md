@@ -9,3 +9,6 @@ The purpose of the Chrome app is to provide the user the ability to gather basic
 1. Drag and drop the `.crx` file you downloaded into the extensions window.
 1. Open a new tab in Chrome and if the apps are not already showing click on the `Apps` button.
 1. Find and click on the `Whitepages Scraper` icon which looks like a map pin.
+
+## A lot of Duplicate Phone Numbers are Found
+Since this the purpose of this Chrome app is to simply collect data, it is up to you to de-duplicate the data.
