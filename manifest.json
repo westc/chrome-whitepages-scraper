@@ -1,8 +1,8 @@
 {
-  "name": "Whitepages Territory Scraper",
-  "description": "Pull territory via whitepages.",
-  "version": "0.1",
   "manifest_version": 2,
+  "name": "Whitepages Scraper",
+  "description": "Pull phone numbers from whitepages based on last names and zip codes.",
+  "version": "0.1",
   "app": {
     "background": {
       "scripts": ["background.js"]

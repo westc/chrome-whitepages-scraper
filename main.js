@@ -1,6 +1,7 @@
 var files = {};
 var pageQueue = [];
 var MAX_RESULTS_PER_PAGE = 10;
+var isSearching = false;
 
 var FILE_CHOOSER_PARAMS = {
   cities: {canBeEmpty: false, columns: ['Zip Code']},
@@ -98,9 +99,18 @@ function readFileAsText(fileEntry, callback) {
   fileEntry.file(function(file) {
     var reader = new FileReader();
     reader.onload = function(e) {
-      callback(e.target.result);
+      var contents = e.target.result;
+      if (/\uFFFD/.test(contents)) {
+        reader.onload = function(e) {
+          callback(e.target.result);
+        };
+        reader.readAsBinaryString(file);
+      }
+      else {
+        callback(contents);
+      }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsText(file);
   });
 }
 
@@ -110,27 +120,33 @@ function saveFileAsText(fileEntry, text, callback) {
     if (callback) {
       fileWriter.onwriteend = callback;
     }
-    fileWriter.write(new Blob([text], {type: 'text/plain'}));
+    fileWriter.write(new Blob([text], {type: 'text/plain', encoding:'UTF-8'}));
   });
 }
 
 function findPeople() {
-  if (!files.cities) {
-    return alert('A valid cities file must be provided.');
-  }
-  if (!files.lastNames) {
-    return alert('A valid last names file must be provided.');
-  }
-  if (!files.searches) {
-    return alert('A valid searches file must be provided.');
-  }
-  if (!files.results) {
-    return alert('A valid results file must be provided.');
-  }
+  if (!isSearching) {
+    if (!files.cities) {
+      return alert('A valid cities file must be provided.');
+    }
+    if (!files.lastNames) {
+      return alert('A valid last names file must be provided.');
+    }
+    if (!files.searches) {
+      return alert('A valid searches file must be provided.');
+    }
+    if (!files.results) {
+      return alert('A valid results file must be provided.');
+    }
 
-  fillSearches();
+    $('#webviewPanel').css({ display: 'block' });
+    $('#webviewTitle').text('Filling Searches...');
+    fillSearches();
 
-  doNextSearch();
+    isSearching = true;
+
+    doNextSearch();
+  }
 }
 
 function saveAllFiles() {
@@ -160,23 +176,39 @@ function doNextSearch(did_a_search) {
   }
   var search = files.searches.rows.slice(-1)[0];
 
-  console.group('Doing search:', JSON.stringify(search));
+  if (+search.Timestamp) {
+    $('#webviewPanel').css({ display: 'none' });
+    isSearching = false;
+    alert('You have exhaustively searched through all of the zip codes and last names.  In order to run the searches again, please choose a new searches file and a new results file.');
+  }
+  else {
+    $('#webviewTitle').text('Searching for ' + search['Last Name'] + ' in ' + search['Zip Code'] + '...');
 
-  pageQueue.push({
-    type: 'index',
-    search: search,
-    url: 'http://www.whitepages.com/name/' + search['Last Name'] + '/' + search['Zip Code'],
-    number: 1
-  });
-  loadNextPage();
+    console.group('Doing search:', JSON.stringify(search));
+
+    pageQueue.push({
+      type: 'index',
+      search: search,
+      url: 'http://www.whitepages.com/name/' + search['Last Name'] + '/' + search['Zip Code'],
+      number: 1
+    });
+    loadNextPage();
+  }
 }
 
-function getIndexReader(search, pageNum) {
+function getIndexReader(search, pageNum, page) {
   return function(jqWrapper, url) {
     var jqLogoWrap = jqWrapper.find('.logo-wrapper');
 
     if (!jqLogoWrap[0]) {
-      return alert('Ending searches because whitepages is no longer sending expected data.');
+      var jqCaptcha = jqWrapper.find('#distilCaptchaForm');
+      if (jqCaptcha[0]) {
+        return alert('You must enter the code in the whitepages panel to continue searching.');
+      }
+      else {
+        console.error('jqWrapper =', jqWrapper);
+        return alert('Ending searches because whitepages is no longer sending expected data.');
+      }
     }
 
     var jqResults = jqWrapper.find('.serp-results');
@@ -209,12 +241,18 @@ function getIndexReader(search, pageNum) {
   };
 }
 
-function getPersonReader(search, pageNum) {
+function getPersonReader(search, pageNum, page) {
   return function(jqWrapper, url) {
     var jqPerson = jqWrapper.find('.person.detail');
 
     if (!jqPerson[0]) {
-      return alert('Ending searches because whitepages is no longer sending expected data.');
+      var jqCaptcha = jqWrapper.find('#distilCaptchaForm');
+      if (jqCaptcha[0]) {
+        return alert('You must enter the code in the whitepages panel to continue searching.');
+      }
+      else {
+        return alert('Ending searches because whitepages is no longer sending expected data.');
+      }
     }
 
     var fullName = jqPerson.find('.name:eq(0)').text();
@@ -247,7 +285,7 @@ function getPersonReader(search, pageNum) {
 function loadNextPage() {
   var page = pageQueue.shift();
   if (page) {
-    loadPage(page.url, (page.type == 'index' ? getIndexReader : getPersonReader)(page.search, page.number));
+    loadPage(page.url, (page.type == 'index' ? getIndexReader : getPersonReader)(page.search, page.number, page));
   }
   else {
     doNextSearch(true);
@@ -257,17 +295,12 @@ function loadNextPage() {
 function setupLoadPage() {
   var loadPageCallback;
 
-  var jqWebview = $('<webview />').appendTo('body').css({
-    width: 0,
-    height: 0,
-    overflow: 'hidden',
-    position: 'absolute'
-  }).bind('contentload', function() {
-    var me = this;
-    setTimeout(function() {
-
-      me.executeScript({ code: '(__scraper__=(window.__scraper__ || 0) + 1) < 2' }, function(firstTimeArgs) {
-        if (firstTimeArgs[0]) {
+  var jqWebview = $('webview').bind('loadcommit', function(isTopLevel) {
+    var me = $('webview')[0];
+    me.executeScript(
+      { code: 'window.__scraper__ = (window.__scraper__ || 0) + !!(document.getElementById("footer") || document.getElementById("distilCaptchaForm"))' },
+      $JS.param([0], function(__scraper__) {
+        if (__scraper__ == 1) {
           me.executeScript({ code: 'document.body.innerHTML' }, function(htmlArgs) {
             me.executeScript({ code: 'location.href' }, function(urlArgs) {
               if (loadPageCallback) {
@@ -276,8 +309,8 @@ function setupLoadPage() {
             });
           });
         }
-      });
-    }, 1000);
+      })
+    );
   });
 
   loadPage = function(url, callback) {

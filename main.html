@@ -9,6 +9,34 @@
     <link rel="stylesheet" type="text/css" href="main.css">
   </head>
   <body>
+    <h1>Whitepages Scraper</h1>
+    <fieldset>
+      <legend>Instructions</legend>
+      <p>You need to select the four different files shown in the <code>Files</code> section and then click the <code>Find People</code> button to start searching.</p>
+
+      <p>Every once in a while Whitepages will attempt to prevent applications like this one from working by soliciting proof that there is a human carrying out these searches.  At that time</p>
+
+      <p>Each of the files should be CSV files which may also be created and/or opened in a spreadsheet application such as Microsoft Excel.  Here is what each file should contain.</p>
+      <ul>
+        <li>
+          <b>Cities File</b><br />
+          <span>This file should contain the zip codes to be searched.  This file must contain at least one "<code>Zip Code</code>" column which must not be empty.</span>
+        </li>
+        <li>
+          <b>Last Names File</b><br />
+          <span>This file should contain the last names to be searched.  This file must contain at least one "<code>Last Name</code>" column which must not be empty.</span>
+        </li>
+        <li>
+          <b>Searches File</b><br />
+          <span>This file will be an exhaustive list of all of the searches that should be carried out.  The first time through, this can simply be a blank file if you'd like.  Thereafter the file will contain the following columns: "<code>Timestamp</code>", "<code>Zip Code</code>", and "<code>Last Name</code>".  The "<code>Timestamp</code>" will be a representation of when the search was actually completed.</span>
+        </li>
+        <li>
+          <b>Results File</b><br />
+          <span>This will contain all of the search results gathered.  It is the file which you can use to then compile your own list of phone numbers to be checked by a publisher and thereafter added to a phone territory.  The first time through, this can simply be a blank file if you'd like.  Once at least one matching record is found the file will contain the following columns: "<code>Timestamp</code>", "<code>Zip Code</code>", "<code>Last Name</code>", "<code>Full Name</code>", "<code>Phone</code>", "<code>Address 1</code>", "<code>Address 2</code>", "<code>City</code>", and "<code>State</code>".</span>
+        </li>
+      </ul>
+      <p>You can <a href="https://github.com/westc/chrome-whitepages-scraper" target="_blank">go here</a> to find the original project on GitHub.</p>
+    </fieldset>
     <fieldset>
       <legend>Files</legend>
       <table id="tblFiles">
@@ -35,5 +63,10 @@
         </tr>
       </table>
     </fieldset>
+
+    <div id="webviewPanel">
+      <div id="webviewTitle"></div>
+      <div id="webviewWrapper"><webview></webview></div>
+    </div>
   </body>
 </html>

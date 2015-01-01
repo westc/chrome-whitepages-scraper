@@ -1,6 +1,9 @@
 * {
   font-family: Verdana;
 }
+html, body {
+  overflow: auto;
+}
 fieldset {
   border-radius: 5px;
   margin-top: 2px;
@@ -178,4 +181,46 @@ textarea, input[type=text] {
 }
 #tblFiles input[type=text].error {
   box-shadow: 0 0 3px 3px #F00;
+}
+#webviewPanel {
+  background-color: #000;
+  border-radius: 10px;
+  box-shadow: 0 0 5px 5px #000;
+  color: #FFF;
+  display: none;
+  overflow: hidden;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1;
+}
+#webviewTitle {
+  font-family: 'Trebuchet MS';
+  font-size: 30px;
+  font-weight: bold;
+  height: 40px;
+  line-height: 40px;
+  position: absolute;
+  text-align: center;
+  top: 0;
+  width: 100%;
+}
+#webviewWrapper {
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+webview {
+  border-radius: 10px;
+  height: 100%;
+  width: 100%;
+}
+h1 {
+  border-bottom: 3px solid #DDD;
 }
